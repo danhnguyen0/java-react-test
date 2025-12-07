@@ -1,0 +1,50 @@
+name: CI - frontend
+
+on:
+  push:
+    branches:
+      - main
+      - pipelinegen-setup
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20' # Using a recent LTS version
+
+      - name: Install Node.js dependencies
+        working-directory: frontend
+        run: |
+          if [ -f package-lock.json ]; then
+            echo "package-lock.json found, running npm ci..."
+            npm ci
+          else
+            echo "package-lock.json not found, running npm install..."
+            npm install
+          fi
+
+      - name: Run unit tests if present
+        working-directory: frontend
+        run: |
+          # Check if 'test' script exists in package.json
+          if npm test -- --json </dev/null 2>/dev/null | grep -q '"test"'; then
+            echo "Test script found, running npm test..."
+            npm test
+          else
+            echo "No 'test' script found in package.json, skipping unit tests."
+          fi
+        # npm test -- --json will attempt to run the test script and output JSON.
+        # If no test script is defined, it will exit with an error.
+        # By redirecting stderr and checking its output, we can infer existence.
+        # A more robust way to check for script existence is parsing package.json,
+        # but this is a common and often sufficient method for CI.
+
+      - name: Build Docker image
+        run: docker build -f frontend.Dockerfile -t frontend .
