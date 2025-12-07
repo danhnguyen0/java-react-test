@@ -1,0 +1,22 @@
+name: CI - backend
+on:
+  push:
+    branches:
+      - main
+      - pipelinegen-setup
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'maven'
+      - name: Build and test with Maven
+        run: mvn -B package --file pom.xml
+      - name: Docker build
+        run: docker build -t backend .
