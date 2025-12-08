@@ -3,17 +3,15 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 COPY frontend/package.json ./
-COPY frontend/package-lock.json ./
+RUN npm install
 
-RUN npm install --omit=dev
-
-COPY frontend .
+COPY frontend/ .
 
 RUN npm run build
 
 FROM nginx:alpine
 
-COPY --from=builder /app/build /usr/share/nginx/html
+COPY --from=builder /app/dist /usr/share/nginx/html
 
 EXPOSE 80
 

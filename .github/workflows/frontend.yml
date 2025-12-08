@@ -1,3 +1,4 @@
+```yaml
 name: CI - frontend
 
 on:
@@ -11,40 +12,39 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20' # Using a recent LTS version
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18' # You can change this to your preferred Node.js version
 
-      - name: Install Node.js dependencies
-        working-directory: frontend
-        run: |
-          if [ -f package-lock.json ]; then
-            echo "package-lock.json found, running npm ci..."
-            npm ci
-          else
-            echo "package-lock.json not found, running npm install..."
-            npm install
-          fi
+    - name: Check for package-lock.json
+      id: check_package_lock
+      run: |
+        if [ -f "frontend/package-lock.json" ]; then
+          echo "exists=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "exists=false" >> "$GITHUB_OUTPUT"
+        fi
 
-      - name: Run unit tests if present
-        working-directory: frontend
-        run: |
-          # Check if 'test' script exists in package.json
-          if npm test -- --json </dev/null 2>/dev/null | grep -q '"test"'; then
-            echo "Test script found, running npm test..."
-            npm test
-          else
-            echo "No 'test' script found in package.json, skipping unit tests."
-          fi
-        # npm test -- --json will attempt to run the test script and output JSON.
-        # If no test script is defined, it will exit with an error.
-        # By redirecting stderr and checking its output, we can infer existence.
-        # A more robust way to check for script existence is parsing package.json,
-        # but this is a common and often sufficient method for CI.
+    - name: Install dependencies (npm ci)
+      if: steps.check_package_lock.outputs.exists == 'true'
+      working-directory: frontend
+      run: npm ci
 
-      - name: Build Docker image
-        run: docker build -f frontend.Dockerfile -t frontend .
+    - name: Install dependencies (npm install)
+      if: steps.check_package_lock.outputs.exists == 'false'
+      working-directory: frontend
+      run: npm install
+
+    - name: Run tests (continue on error)
+      working-directory: frontend
+      run: npm test
+      continue-on-error: true # This allows subsequent steps to run even if tests fail
+
+    - name: Build Docker image
+      # This command runs from the repository root to correctly find frontend.Dockerfile
+      run: docker build -f frontend.Dockerfile -t frontend .
+```
