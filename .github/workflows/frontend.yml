@@ -1,4 +1,3 @@
-```yaml
 name: CI - frontend
 
 on:
@@ -47,4 +46,3 @@ jobs:
     - name: Build Docker image
       # This command runs from the repository root to correctly find frontend.Dockerfile
       run: docker build -f frontend.Dockerfile -t frontend .
-```
